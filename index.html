@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot Konseling Stress + Grafik Emosi</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Load Chart.js -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .chat-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .message {
+      background: #e0e0e0;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 5px;
+      max-width: 80%;
+    }
+    .user {
+      background: #d1e7dd;
+      align-self: flex-end;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 5px;
+    }
+    #summary {
+      display: none;
+      padding: 20px;
+      background: #ffffff;
+      border: 2px solid #4CAF50;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+    canvas {
+      margin-top: 20px;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="messages" id="chatBox">
+    <div class="message">Halo! Aku adalah konselor virtualmu. Ceritakan perasaanmu hari ini!</div>
+  </div>
+  <input type="text" id="userInput" placeholder="Ketik di sini...">
+  <button onclick="sendMessage()">Kirim</button>
+  <div id="summary">
+    <h3>Ringkasan Emosi</h3>
+    <canvas id="emotionChart"></canvas>
+  </div>
+</div>
+
+<script>
+  let emotionLog = JSON.parse(localStorage.getItem('emotionLog')) || [];
+
+  function sendMessage() {
+    const input = document.getElementById('userInput');
+    const chatBox = document.getElementById('chatBox');
+    const userText = input.value.trim();
+
+    if (userText !== '') {
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.innerText = userText;
+      chatBox.appendChild(userMsg);
+
+      setTimeout(() => {
+        const botResponse = getBotResponse(userText);
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message';
+        botMsg.innerText = botResponse.message;
+        chatBox.appendChild(botMsg);
+
+        if (botResponse.emotion) {
+          emotionLog.push(botResponse.emotion);
+          localStorage.setItem('emotionLog', JSON.stringify(emotionLog));
+        }
+
+        if (emotionLog.length >= 7) {
+          showSummary();
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }, 500);
+
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  }
+
+  function getBotResponse(input) {
+    input = input.toLowerCase();
+
+    if (input.includes('stres') || input.includes('stress')) {
+      return { message: "Aku mengerti kamu sedang merasa stres. Mau coba latihan pernapasan bersama?", emotion: "stres" };
+    } else if (input.includes('cemas') || input.includes('takut') || input.includes('khawatir')) {
+      return { message: "Cemas itu wajar. Ayo kita tarik napas perlahan bersama.", emotion: "cemas" };
+    } else if (input.includes('marah') || input.includes('kesal')) {
+      return { message: "Aku memahami kemarahanmu. Mau berbagi lebih banyak?", emotion: "marah" };
+    } else if (input.includes('sedih') || input.includes('kecewa') || input.includes('down')) {
+      return { message: "Sedih adalah bagian dari perjalanan hidup. Aku mendengarkanmu.", emotion: "sedih" };
+    } else if (input.includes('bahagia') || input.includes('senang')) {
+      return { message: "Senang mendengar kabar bahagia darimu! Tetap semangat!", emotion: "bahagia" };
+    } else {
+      return { message: "Terima kasih sudah berbagi. Ceritakan lebih banyak jika mau!", emotion: null };
+    }
+  }
+
+  function showSummary() {
+    const summaryDiv = document.getElementById('summary');
+    summaryDiv.style.display = "block";
+
+    const count = {};
+
+    emotionLog.forEach(emotion => {
+      count[emotion] = (count[emotion] || 0) + 1;
+    });
+
+    // Grafik Emosi
+    const ctx = document.getElementById('emotionChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(count),
+        datasets: [{
+          label: 'Jumlah Emosi',
+          data: Object.values(count),
+          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision:0
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Jika sudah pernah 7+ emosi, tampilkan ringkasan saat reload
+  if (emotionLog.length >= 7) {
+    showSummary();
+  }
+</script>
+
+</body>
+</html>
